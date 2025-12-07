@@ -48,6 +48,15 @@ def build_html_template(data: dict) -> str:
     
     currency = "$" 
     
+    # 🌟 CORREÇÃO: Lógica Condicional para o Nome da Empresa
+    # 1. Obter e limpar o nome da empresa
+    company_name = billing.get('company', '').strip()
+    
+    # 2. Criar a string de exibição da empresa (só adiciona (nome) se existir)
+    # Exemplo: Se company_name é "Angel's", company_display será " (Angel's)". Se for "", será "".
+    company_display = f" ({company_name})" if company_name else ""
+    # ----------------------------------------------------------------------
+    
     # 2. Build the Item Table Rows
     items_html = ""
     for item in line_items:
@@ -127,7 +136,9 @@ def build_html_template(data: dict) -> str:
 
             <div class="details">
                 <h2>Customer Details</h2>
-                <p><strong>Name:</strong> {billing.get('first_name', '')} {billing.get('last_name', '')} ({billing.get('company', '')})</p>
+                
+                <p><strong>Name:</strong> {billing.get('first_name', '')} {billing.get('last_name', '')}{company_display}</p>
+                
                 <p><strong>Email:</strong> {billing.get('email', 'N/A')}</p>
                 <p><strong>Phone:</strong> {billing.get('phone', 'N/A')}</p>
                 <p><strong>Address:</strong> {billing.get('address_1', '')}, {billing.get('city', '')} - {billing.get('state', '')} CEP: {billing.get('postcode', '')}</p>
