@@ -9,7 +9,8 @@ app = FastAPI()
 # --- CONFIGURATION ---
 # IMPORTANT: Place your logo file (e.g., 'angel_logo.png') in the same directory.
 LOGO_FILE = "angel_logo.png" 
-# Base URL is used by WeasyPrint to resolve local file paths (like the logo)
+# BASE_URL não é estritamente necessário para o path do logo no CSS,
+# mas é mantido como referência para outros usos.
 BASE_URL = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -45,7 +46,6 @@ def build_html_template(data: dict) -> str:
     billing = body.get("billing", {})
     line_items = body.get("line_items", [])
     
-    # Using currency symbol from mock data. Adjust as needed.
     currency = "$" 
     
     # 2. Build the Item Table Rows
@@ -61,41 +61,42 @@ def build_html_template(data: dict) -> str:
         """
         
     # 3. Styling (CSS) - Defines the PDF layout
-    style = """
+    # USAMOS A F-STRING AQUI PARA INJETAR O CAMINHO ABSOLUTO DO DOCKER NO CSS
+    style = f"""
     <style>
-        @page { size: A4; margin: 1cm; }
-        body { font-family: Arial, sans-serif; font-size: 10pt; line-height: 1.4; color: #333; }
-        h1, h2 { margin-top: 0; }
-        .header { overflow: hidden; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #ccc; }
-        .logo { 
+        @page {{ size: A4; margin: 1cm; }}
+        body {{ font-family: Arial, sans-serif; font-size: 10pt; line-height: 1.4; color: #333; }}
+        h1, h2 {{ margin-top: 0; }}
+        .header {{ overflow: hidden; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #ccc; }}
+        .logo {{ 
             float: left; 
             width: 80px; 
             height: auto; 
             margin-right: 20px;
-            /* Ensure the image is loaded from the local path */
-            content: url(file:///app/{LOGO_FILE}); 
-        }
-        .invoice-info { float: right; text-align: right; }
-        .details h2 { border-bottom: 1px solid #eee; padding-bottom: 5px; font-size: 12pt; }
-        .details p { margin: 2px 0; }
+            /* CHAVE: Caminho absoluto dentro do container Docker */
+            content: url('file:///app/{LOGO_FILE}'); 
+        }}
+        .invoice-info {{ float: right; text-align: right; }}
+        .details h2 {{ border-bottom: 1px solid #eee; padding-bottom: 5px; font-size: 12pt; }}
+        .details p {{ margin: 2px 0; }}
         
-        .items-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        .items-table th, .items-table td { border: 1px solid #eee; padding: 8px; text-align: left; }
-        .items-table th { background-color: #f4f4f4; }
-        .qty { width: 5%; text-align: center; }
-        .price { width: 15%; text-align: right; }
+        .items-table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+        .items-table th, .items-table td {{ border: 1px solid #eee; padding: 8px; text-align: left; }}
+        .items-table th {{ background-color: #f4f4f4; }}
+        .qty {{ width: 5%; text-align: center; }}
+        .price {{ width: 15%; text-align: right; }}
         
-        .total-summary { 
+        .total-summary {{ 
             width: 300px; 
             margin-top: 20px; 
             float: right; 
             border: 1px solid #ccc;
             padding: 10px;
-        }
-        .total-summary table { width: 100%; border-collapse: collapse; }
-        .total-summary tr td { padding: 5px; border: none; }
-        .total-summary .label { font-weight: bold; }
-        .total-summary .value { text-align: right; }
+        }}
+        .total-summary table {{ width: 100%; border-collapse: collapse; }}
+        .total-summary tr td {{ padding: 5px; border: none; }}
+        .total-summary .label {{ font-weight: bold; }}
+        .total-summary .value {{ text-align: right; }}
     </style>
     """
     
@@ -178,8 +179,7 @@ def build_html_template(data: dict) -> str:
     </body>
     </html>
     """
-    # The return uses a local file path for WeasyPrint to load the logo
-    return html_content.replace(LOGO_FILE, os.path.join(BASE_URL, LOGO_FILE))
+    return html_content
 
 
 @app.post("/generate-pdf-invoice")
@@ -213,8 +213,7 @@ async def generate_pdf_invoice(request: Request):
 
     # 2. Convert HTML to PDF using WeasyPrint (in memory)
     try:
-        # BASE_URL is essential for WeasyPrint to find local files like the logo.
-        # We use a trick in the build_html_template and BASE_URL here to handle file paths robustly in Docker.
+        # Usamos base_url="file:///" para garantir que caminhos absolutos como file:///app/ sejam resolvidos corretamente
         html = HTML(string=html_content, base_url="file:///")
         buf = BytesIO()
         html.write_pdf(buf)
