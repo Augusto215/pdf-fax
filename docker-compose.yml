@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  pdf-generator:
+    # Constrói a imagem usando o Dockerfile no diretório atual
+    build: .
+    # Reinicia o container se ele falhar
+    restart: always
+    # Mapeia a porta 8000 do host para a porta 8000 do container
+    ports:
+      - "8000:8000"
+    # Nomeia o container (opcional, mas útil)
+    container_name: pdf_invoice_generator
+    # Variáveis de ambiente podem ser adicionadas aqui se necessário
+    environment:
+      - PYTHONUNBUFFERED=1
